@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SkinAI — Skin Lesion Analyzer</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #0f0e0d; color: #e7e5e4; }
+    .fade-in { animation: fadeIn 0.5s ease both; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+    .upload-zone { transition: border-color 0.2s, background 0.2s; }
+    .upload-zone.drag-over { border-color: #f43f5e; background: rgba(244,63,94,0.04); }
+    .glow { box-shadow: 0 0 40px rgba(244,63,94,0.12); }
+
+    #sidebar { width: 280px; min-width: 280px; }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Nav -->
+  <nav class="border-b border-stone-800/60 px-5 py-4 flex items-center gap-4">
+
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5">
+      <!-- Skin layers logo -->
+      <svg width="32" height="26" viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 10 C16 5 28 17 40 10 C52 5 60 14 64 10" stroke="#c9956c" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        <path d="M4 26 C16 21 28 33 40 26 C52 21 60 30 64 26" stroke="#c9956c" stroke-width="3" stroke-linecap="round" fill="none" stroke-opacity="0.65"/>
+        <path d="M4 42 C16 37 28 49 40 42 C52 37 60 46 64 42" stroke="#c9956c" stroke-width="2.5" stroke-linecap="round" fill="none" stroke-opacity="0.35"/>
+        <circle cx="40" cy="10" r="5" fill="#f43f5e"/>
+      </svg>
+      <span class="font-semibold text-white tracking-tight">SkinAI</span>
+    </div>
+
+    <span class="ml-auto text-xs text-stone-500 hidden sm:block">For informational use only. Not a medical diagnosis.</span>
+  </nav>
+
+  <!-- Body: sidebar + main -->
+  <div id="layout" class="flex gap-0 min-h-[calc(100vh-57px)]">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="border-r border-stone-800 bg-stone-950 overflow-y-auto py-8 px-5 flex-shrink-0">
+      <p class="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-5">Guide</p>
+
+      <!-- How to use -->
+      <div class="mb-7">
+        <p class="text-sm font-semibold text-white mb-3">How It Works</p>
+        <ol class="space-y-2.5">
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">1</span>
+            Upload a clear, close-up photo of the skin lesion
+          </li>
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">2</span>
+            Pick your language: English, Urdu, or Arabic
+          </li>
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">3</span>
+            The model classifies it into one of 7 lesion types
+          </li>
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">4</span>
+            Results and explanations appear in your chosen language
+          </li>
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">5</span>
+            Allow location to find nearby dermatologists with phone and website
+          </li>
+          <li class="flex gap-2.5 text-xs text-stone-400 leading-relaxed">
+            <span class="w-4 h-4 rounded-full bg-rose-600/20 text-rose-400 text-[10px] flex items-center justify-center flex-shrink-0 mt-0.5 font-semibold">6</span>
+            Download the full PDF report and take it to your doctor
+          </li>
+        </ol>
+      </div>
+
+      <div class="border-t border-stone-800 mb-7"></div>
+
+      <!-- Agents -->
+      <div class="mb-7">
+        <p class="text-sm font-semibold text-white mb-3">What Runs After Upload</p>
+        <div class="space-y-3">
+          <div class="p-3 bg-stone-900 rounded-xl border border-stone-800">
+            <p class="text-xs font-semibold text-rose-400 mb-1">Explainer</p>
+            <p class="text-xs text-stone-400 leading-relaxed">Tells you what the condition is in plain language, no medical jargon. Responds in your chosen language.</p>
+          </div>
+          <div class="p-3 bg-stone-900 rounded-xl border border-stone-800">
+            <p class="text-xs font-semibold text-rose-400 mb-1">Risk Triage</p>
+            <p class="text-xs text-stone-400 leading-relaxed">Rates urgency as Low, Medium, or Urgent and explains why.</p>
+          </div>
+          <div class="p-3 bg-stone-900 rounded-xl border border-stone-800">
+            <p class="text-xs font-semibold text-rose-400 mb-1">Next Steps</p>
+            <p class="text-xs text-stone-400 leading-relaxed">Gives you 4 clear actions to take based on the result.</p>
+          </div>
+          <div class="p-3 bg-stone-900 rounded-xl border border-stone-800">
+            <p class="text-xs font-semibold text-rose-400 mb-1">Dermatologist Finder</p>
+            <p class="text-xs text-stone-400 leading-relaxed">Finds up to 5 clinics near you using your location. Click "Get Contact" on any result to see the phone number and website. Click "Maps" to get directions.</p>
+          </div>
+          <div class="p-3 bg-stone-900 rounded-xl border border-stone-800">
+            <p class="text-xs font-semibold text-rose-400 mb-1">PDF Report</p>
+            <p class="text-xs text-stone-400 leading-relaxed">Compiles everything into a downloadable report in your chosen language.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-stone-800 mb-7"></div>
+
+      <!-- 7 lesion types -->
+      <div class="mb-7">
+        <p class="text-sm font-semibold text-white mb-3">7 Lesion Types</p>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Melanoma</span>
+            <span class="text-red-400 font-medium">Malignant</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Basal Cell Carcinoma</span>
+            <span class="text-red-400 font-medium">Malignant</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Actinic Keratoses</span>
+            <span class="text-orange-400 font-medium">Pre-cancerous</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Benign Keratosis</span>
+            <span class="text-green-400 font-medium">Benign</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Melanocytic Nevi</span>
+            <span class="text-green-400 font-medium">Benign</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Dermatofibroma</span>
+            <span class="text-green-400 font-medium">Benign</span>
+          </div>
+          <div class="flex items-center justify-between text-xs">
+            <span class="text-stone-300">Vascular Lesion</span>
+            <span class="text-green-400 font-medium">Benign</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-stone-800 mb-5"></div>
+
+      <!-- Disclaimer -->
+      <p class="text-xs text-stone-600 leading-relaxed">
+        This tool does not provide medical diagnoses. Always consult a qualified dermatologist for any skin concerns.
+      </p>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 overflow-auto">
+      <div class="max-w-3xl mx-auto px-4 py-10">
+        {% block content %}{% endblock %}
+      </div>
+    </div>
+
+  </div>
+
+
+</body>
+</html>

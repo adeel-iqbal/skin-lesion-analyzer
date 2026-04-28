@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% set risk_colors = {
+  'malignant':     'text-red-400 bg-red-400/10 border-red-400/20',
+  'pre-cancerous': 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+  'benign':        'text-green-400 bg-green-400/10 border-green-400/20',
+} %}
+
+{% set triage_colors = {
+  'Urgent': 'text-red-400 bg-red-400/10 border-red-400/20',
+  'Medium': 'text-orange-400 bg-orange-400/10 border-orange-400/20',
+  'Low':    'text-green-400 bg-green-400/10 border-green-400/20',
+} %}
+
+<div class="fade-in mb-6 flex items-center justify-between">
+  <a href="/" class="text-sm text-stone-400 hover:text-white flex items-center gap-2 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Analyze another image
+  </a>
+  <a href="{{ pdf_url }}" download
+    class="text-sm bg-rose-600 hover:bg-rose-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 4v11"/>
+    </svg>
+    Download PDF Report
+  </a>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 fade-in">
+
+  <!-- Uploaded image -->
+  <div class="bg-stone-900 border border-stone-800 rounded-2xl p-4 flex flex-col items-center justify-center">
+    <img src="{{ image_url }}" class="w-full max-h-48 object-contain rounded-xl mb-3"/>
+    <p class="text-xs text-stone-500">Uploaded image</p>
+  </div>
+
+  <!-- Prediction -->
+  <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 col-span-2">
+    <p class="text-xs text-stone-500 uppercase tracking-widest mb-1">Prediction</p>
+    <h2 class="text-2xl font-bold text-white mb-1">{{ prediction.full_name }}</h2>
+    <p class="text-stone-400 text-sm mb-4">{{ prediction.predicted_class }}</p>
+
+    <div class="flex items-center gap-3 mb-5">
+      <span class="text-3xl font-bold text-white">{{ prediction.confidence }}%</span>
+      <span class="text-stone-500 text-sm">confidence</span>
+      <span class="ml-auto px-3 py-1 rounded-full border text-sm font-medium {{ risk_colors.get(prediction.risk, 'text-stone-400 bg-stone-800 border-stone-700') }}">
+        {{ prediction.risk | upper }}
+      </span>
+    </div>
+
+    <!-- Confidence bar chart -->
+    <canvas id="confidenceChart" height="100"></canvas>
+  </div>
+</div>
+
+<!-- Explanation -->
+<div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 mb-4 fade-in">
+  <p class="text-xs text-stone-500 uppercase tracking-widest mb-3">What this means</p>
+  <p class="text-stone-300 leading-relaxed">{{ agent.explanation }}</p>
+</div>
+
+<!-- Triage + Next Steps -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 fade-in">
+
+  <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6">
+    <p class="text-xs text-stone-500 uppercase tracking-widest mb-3">Urgency</p>
+    <span class="inline-block px-4 py-2 rounded-full border text-lg font-bold mb-3 {{ triage_colors.get(agent.triage.level, 'text-stone-400 bg-stone-800 border-stone-700') }}">
+      {{ agent.triage.level }}
+    </span>
+    <p class="text-stone-400 text-sm leading-relaxed">{{ agent.triage.reason }}</p>
+  </div>
+
+  <div class="bg-stone-900 border border-stone-800 rounded-2xl p-6">
+    <p class="text-xs text-stone-500 uppercase tracking-widest mb-3">What to do next</p>
+    <ol class="space-y-2">
+      {% for step in agent.next_steps %}
+      <li class="flex items-start gap-3 text-sm text-stone-300">
+        <span class="w-5 h-5 rounded-full bg-rose-600/20 text-rose-400 text-xs flex items-center justify-center flex-shrink-0 mt-0.5 font-medium">{{ loop.index }}</span>
+        {{ step }}
+      </li>
+      {% endfor %}
+    </ol>
+  </div>
+</div>
+
+<!-- Nearby Dermatologists -->
+{% if dermatologists %}
+<div class="bg-stone-900 border border-stone-800 rounded-2xl p-6 mb-4 fade-in">
+  <p class="text-xs text-stone-500 uppercase tracking-widest mb-4">Nearby dermatologists</p>
+  <div class="space-y-3">
+    {% for d in dermatologists %}
+    <div class="bg-stone-800/50 rounded-xl border border-stone-700 overflow-hidden">
+
+      <!-- Main row -->
+      <div class="flex items-start justify-between p-4">
+        <div class="flex-1 min-w-0">
+          <p class="font-medium text-white text-sm">{{ d.name }}</p>
+          <p class="text-stone-400 text-xs mt-0.5 truncate">{{ d.address }}</p>
+          <div class="flex items-center gap-2 mt-1">
+            {% if d.rating != 'N/A' %}
+            <span class="text-yellow-400 text-xs">★ {{ d.rating }}</span>
+            {% endif %}
+            {% if d.open_now == true %}
+            <span class="text-green-400 text-xs">Open now</span>
+            {% elif d.open_now == false %}
+            <span class="text-red-400 text-xs">Closed</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+          <button onclick="toggleContact(this, '{{ d.place_id }}')"
+            class="text-xs text-rose-400 hover:text-rose-300 border border-rose-400/30 hover:border-rose-400/60 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+            Get Contact
+          </button>
+          <a href="{{ d.maps_url }}" target="_blank"
+            class="text-xs text-stone-400 hover:text-white border border-stone-700 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+            Maps
+          </a>
+        </div>
+      </div>
+
+      <!-- Expanded contact info (hidden by default) -->
+      <div class="contact-panel hidden border-t border-stone-700 px-4 py-3 bg-stone-900/60">
+        <div class="contact-content text-xs text-stone-400">Loading...</div>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+async function toggleContact(btn, placeId) {
+  const card = btn.closest('.bg-stone-800\\/50');
+  const panel = card.querySelector('.contact-panel');
+  const content = card.querySelector('.contact-content');
+
+  if (!panel.classList.contains('hidden')) {
+    panel.classList.add('hidden');
+    btn.textContent = 'Get Contact';
+    return;
+  }
+
+  btn.textContent = 'Loading...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(`/place-details?place_id=${placeId}`);
+    const data = await res.json();
+
+    let html = '';
+    if (data.phone) {
+      html += `<a href="tel:${data.phone}" class="flex items-center gap-2 text-white hover:text-rose-400 transition-colors mb-1.5">
+        <svg class="w-3.5 h-3.5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+        </svg>
+        ${data.phone}
+      </a>`;
+    }
+    if (data.website) {
+      const short = data.website.replace(/^https?:\/\/(www\.)?/, '').split('/')[0];
+      html += `<a href="${data.website}" target="_blank" class="flex items-center gap-2 text-white hover:text-rose-400 transition-colors mb-1.5">
+        <svg class="w-3.5 h-3.5 text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+        </svg>
+        ${short}
+      </a>`;
+    }
+    if (!data.phone && !data.website) {
+      html = '<span class="text-stone-500">No contact info available for this clinic.</span>';
+    }
+
+    content.innerHTML = html;
+    panel.classList.remove('hidden');
+    btn.textContent = 'Hide Contact';
+  } catch {
+    content.innerHTML = '<span class="text-red-400">Could not load contact info.</span>';
+    panel.classList.remove('hidden');
+    btn.textContent = 'Hide Contact';
+  }
+
+  btn.disabled = false;
+}
+</script>
+
+<!-- Disclaimer -->
+<div class="bg-stone-900/50 border border-stone-800 rounded-xl p-4 text-center fade-in">
+  <p class="text-xs text-stone-500">
+    This analysis is generated by an AI model and is not a medical diagnosis.
+    Please consult a qualified dermatologist before making any health decisions.
+  </p>
+</div>
+
+<script>
+  const scores = {{ prediction.all_scores | tojson }};
+  const labels = Object.keys(scores);
+  const values = Object.values(scores);
+  const predicted = "{{ prediction.predicted_class }}";
+
+  new Chart(document.getElementById('confidenceChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: labels.map(l => l === predicted ? 'rgba(244,63,94,0.85)' : 'rgba(120,113,108,0.3)'),
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } } },
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { size: 11 } }, max: 100 }
+      }
+    }
+  });
+</script>
+{% endblock %}
