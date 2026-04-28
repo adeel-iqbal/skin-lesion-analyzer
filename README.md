@@ -52,25 +52,30 @@ Each agent runs independently and in parallel after the model makes its predicti
 
 ## 🖼️ Screenshots
 
+**Upload Page**
 <table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="assets/1.png" alt="Home Page" width="100%"/>
-      <br/><sub><b>1. Home Page</b></sub>
+      <img src="assets/1.png" alt="Upload Page Top" width="100%"/>
+      <br/><sub><b>Upload & language selection</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="assets/2.png" alt="Result Page" width="100%"/>
-      <br/><sub><b>2. Analysis Results</b></sub>
+      <img src="assets/2.png" alt="Upload Page Bottom" width="100%"/>
+      <br/><sub><b>Location & analyze button</b></sub>
     </td>
   </tr>
+</table>
+
+**Results & Dermatologist Finder**
+<table align="center">
   <tr>
     <td align="center" width="50%">
-      <img src="assets/3.png" alt="Dermatologist Finder" width="100%"/>
-      <br/><sub><b>3. Dermatologist Finder</b></sub>
+      <img src="assets/3.png" alt="Analysis Results" width="100%"/>
+      <br/><sub><b>Prediction, explanation & urgency</b></sub>
     </td>
     <td align="center" width="50%">
-      <img src="assets/4.png" alt="PDF Report" width="100%"/>
-      <br/><sub><b>4. PDF Report</b></sub>
+      <img src="assets/4.png" alt="Dermatologist Finder" width="100%"/>
+      <br/><sub><b>Nearby dermatologists with contacts</b></sub>
     </td>
   </tr>
 </table>
